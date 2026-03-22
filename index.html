@@ -87,6 +87,16 @@ button{font-size:16px;padding:10px 16px;margin-right:10px;cursor:pointer;}
   background:linear-gradient(to top,#00ff88,#00cc66);
 }
 
+/* D/K 用ピークバー */
+.ringContent .peakBar{
+  position:absolute;
+  bottom:0;
+  width:100%;
+  height:3px;
+  background:#fff;
+  z-index:3;
+}
+
 /* F/J 中央 300px円 */
 .circleContainer{
   position:absolute;
@@ -122,7 +132,7 @@ button{font-size:16px;padding:10px 16px;margin-right:10px;cursor:pointer;}
   height:0%;
   background:linear-gradient(to top,#ff4040,#ff0000);
 }
-.peakBar{
+.meterWrap.f .peakBar,.meterWrap.j .peakBar{
   position:absolute;
   bottom:0;
   width:100%;
@@ -132,7 +142,7 @@ button{font-size:16px;padding:10px 16px;margin-right:10px;cursor:pointer;}
 </style>
 </head>
 <body>
-<h2>Doncon 感度調整</h2>
+<h2>Doncon 感度調整1</h2>
 <div id="status">
   <span id="led" class="dot red"></span>
   <span id="statText">DISCONNECTED</span>
@@ -194,6 +204,12 @@ function createUI(){
   dBar.className="meterBar";
   dBar.id="bar0";
   dContent.appendChild(dBar);
+  // Dピークバー
+  const dPeak=document.createElement("div");
+  dPeak.className="peakBar";
+  dPeak.id="peak0";
+  dContent.appendChild(dPeak);
+
   dRing.appendChild(dInner);
   dRing.appendChild(dContent);
   meterContainer.appendChild(dRing);
@@ -209,6 +225,12 @@ function createUI(){
   kBar.className="meterBar";
   kBar.id="bar3";
   kContent.appendChild(kBar);
+  // Kピークバー
+  const kPeak=document.createElement("div");
+  kPeak.className="peakBar";
+  kPeak.id="peak3";
+  kContent.appendChild(kPeak);
+
   kRing.appendChild(kInner);
   kRing.appendChild(kContent);
   meterContainer.appendChild(kRing);
@@ -258,6 +280,7 @@ function createUI(){
 
 /* ================= SEND ================= */
 function send(obj){if(writer) writer.write(new TextEncoder().encode(JSON.stringify(obj)+"\n"));}
+
 function sendParam(ch,val,type){send({cmd:"set", ch:ch, type:type, value:parseFloat(val)});}
 saveBtn.onclick=()=>{setStatus("SAVING","yellow");send({cmd:"save"});};
 
@@ -266,6 +289,7 @@ function updateMeter(ch,value){
   const percent=Math.min(100,(value/65535)*100);
   const bar=document.getElementById("bar"+ch);
   bar.style.height=percent+"%";
+
   if(percent>70){bar.style.background="white"; flashTimers[ch]=5;}
   if(flashTimers[ch]>0){
     flashTimers[ch]--;
@@ -274,14 +298,15 @@ function updateMeter(ch,value){
       else bar.style.background="linear-gradient(to top,#ff4040,#ff0000)";
     }
   }
+
   if(value>peaks[ch]) peaks[ch]=value;
   const peak=document.getElementById("peak"+ch);
   const peakPercent=(peaks[ch]/65535)*100;
   peak.style.bottom=peakPercent+"%";
 }
 
-/* peak decay */
-setInterval(()=>{for(let i=0;i<4;i++) peaks[i]*=0.92;},40);
+/* peak decay（少し遅めに残す） */
+setInterval(()=>{for(let i=0;i<4;i++) peaks[i]*=0.96;},40);
 
 /* ================= READ ================= */
 async function startRead(){
