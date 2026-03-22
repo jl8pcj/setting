@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>RP2040 太鼓アーケードUI F/J + D/Kリング 完全版</title>
+<title>RP2040 太鼓アーケードUI F/J + D/Kリング バランス版</title>
 <style>
 body{
   background:#0b0b0b;
@@ -45,7 +45,7 @@ button{font-size:16px;padding:10px 16px;margin-right:10px;cursor:pointer;}
   top:50%;
   transform:translateY(-50%);
   border-radius:50%;
-  background:#0b0b0b; /* 中央円のくりぬき部分 */
+  background:#0b0b0b; /* 中央円くり抜き部分 */
 }
 
 .ringContent{
@@ -56,15 +56,16 @@ button{font-size:16px;padding:10px 16px;margin-right:10px;cursor:pointer;}
 
 /* 左右半分に分割 + 10pxクリアランス */
 .ring.d {
-  left: calc(50% - 150px - 10px); /* 中央円半径 150 + 10pxクリアランス */
+  left: calc(50% - 150px - 10px); /* 中央円半径150px + 10px */
   transform: translateY(-50%);
 }
 .ring.d .ringContent {
   clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%);
   background:#333; /* 下がっている部分はグレー */
 }
+
 .ring.k {
-  left: calc(50% + 150px + 10px); /* 中央円半径 150 + 10pxクリアランス */
+  left: calc(50% + 150px + 10px); /* 中央円半径150px + 10px */
   transform: translateY(-50%);
 }
 .ring.k .ringContent {
@@ -129,7 +130,7 @@ button{font-size:16px;padding:10px 16px;margin-right:10px;cursor:pointer;}
 </head>
 <body>
 
-<h2>RP2040 太鼓アーケードUI F/J + D/Kリング 完全版</h2>
+<h2>RP2040 太鼓アーケードUI F/J + D/Kリング バランス版</h2>
 <div id="status">
   <span id="led" class="dot red"></span>
   <span id="statText">DISCONNECTED</span>
@@ -265,22 +266,4 @@ async function startRead(){
     for(const line of lines){
       if(!line.startsWith("{")) continue;
       try{
-        const data=JSON.parse(line);
-        if(data.type==="adc"){setStatus("RECEIVING DATA","green");updateMeter(data.ch,data.value);}
-        if(data.type==="saved") setStatus("SAVED ✓","green");
-        if(data.type==="save_error") setStatus("SAVE ERROR","red");
-        if(data.type==="settings"){
-          const sliders=document.querySelectorAll(".sliderRow input");
-          for(let i=0;i<4;i++){sliders[i*2].value=data.gain[i]; sliders[i*2+1].value=data.threshold[i];}
-          setStatus("SETTINGS LOADED","green");
-        }
-      }catch(e){}
-    }
-  }
-}
-
-/* ================= WATCHDOG ================= */
-setInterval(()=>{if(Date.now()-lastReceive>1500) setStatus("NO DATA","red");},500);
-</script>
-</body>
-</html>
+        const data=JSON.parse(line)
