@@ -43,8 +43,8 @@ button{font-size:16px;padding:10px 16px;margin-right:10px;cursor:pointer;}
 .ring.d .ringInner,
 .ring.k .ringInner{
   position:absolute;
-  width:280px;
-  height:280px;
+  width:200px;
+  height:200px;
   top:50%;
   left:50%;
   transform:translate(-50%,-50%);
@@ -68,13 +68,13 @@ button{font-size:16px;padding:10px 16px;margin-right:10px;cursor:pointer;}
 /* D 左半分バー（右側を5px内側） */
 .ring.d .ringContent{
   clip-path: polygon(0 0, calc(50% - 5px) 0, calc(50% - 5px) 100%, 0 100%);
-  background:#333;
+  background:#222;
 }
 
 /* K 右半分バー（左側を5px内側） */
 .ring.k .ringContent{
   clip-path: polygon(calc(50% + 5px) 0, 100% 0, 100% 100%, calc(50% + 5px) 100%);
-  background:#333;
+  background:#222;
 }
 
 /* バー */
@@ -132,7 +132,7 @@ button{font-size:16px;padding:10px 16px;margin-right:10px;cursor:pointer;}
 </style>
 </head>
 <body>
-<h2>RP2040 太鼓アーケードUI 完全版2</h2>
+<h2>RP2040 太鼓アーケードUI 完全版3</h2>
 <div id="status">
   <span id="led" class="dot red"></span>
   <span id="statText">DISCONNECTED</span>
