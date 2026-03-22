@@ -2,19 +2,36 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>RP2040 Piezo Setting</title>
+<title>RP2040 Setting</title>
 
 <style>
 body{
-  font-family:sans-serif;
   background:#111;
   color:#fff;
+  font-family:sans-serif;
   padding:20px;
 }
 
+#status{
+  font-size:18px;
+  margin-bottom:15px;
+}
+
+.dot{
+  display:inline-block;
+  width:12px;
+  height:12px;
+  border-radius:50%;
+  margin-right:8px;
+}
+
+.red{background:#f33;}
+.yellow{background:#ff0;}
+.green{background:#3f3;}
+
 .card{
   border:1px solid #444;
-  padding:15px;
+  padding:10px;
   margin:10px 0;
 }
 
@@ -22,23 +39,17 @@ meter{
   width:100%;
   height:20px;
 }
-
-.peak{
-  color:#ff4444;
-  font-size:14px;
-}
-
-button{
-  padding:10px;
-  margin:5px;
-  font-size:16px;
-}
 </style>
 </head>
 
 <body>
 
-<h2>RP2040 リアルタイム調整</h2>
+<h2>RP2040 Controller</h2>
+
+<div id="status">
+  <span class="dot red" id="led"></span>
+  <span id="statText">DISCONNECTED</span>
+</div>
 
 <button onclick="connect()">接続</button>
 <button onclick="save()">SAVE</button>
@@ -46,24 +57,30 @@ button{
 <div id="channels"></div>
 
 <script>
-let port;
-let writer;
-let reader;
+let port,reader,writer;
+let lastReceive=0;
 
 const names=["D","F","J","K"];
-let sliders=[];
 let peaks=[0,0,0,0];
+
+function setStatus(text,color){
+  document.getElementById("statText").textContent=text;
+  document.getElementById("led").className="dot "+color;
+}
 
 async function connect(){
 
-  port = await navigator.serial.requestPort();
+  setStatus("CONNECTING...","yellow");
+
+  port=await navigator.serial.requestPort();
   await port.open({baudRate:115200});
 
-  writer = port.writable.getWriter();
-  reader = port.readable.getReader();
+  writer=port.writable.getWriter();
+  reader=port.readable.getReader();
 
-  console.log("connected");
+  setStatus("CONNECTED","green");
 
+  createUI();
   startRead();
 }
 
@@ -81,15 +98,15 @@ function createUI(){
       <h3>${names[i]}</h3>
 
       gain
-      <input type="range" min="0.5" max="5" step="0.1" value="1"
+      <input type="range" min="0.5" max="5" step="0.1"
         oninput="sendParam(${i},this.value,'gain')">
 
       threshold
-      <input type="range" min="1000" max="40000" step="500" value="15000"
+      <input type="range" min="1000" max="40000" step="500"
         oninput="sendParam(${i},this.value,'threshold')">
 
       <meter id="m${i}" min="0" max="65535"></meter>
-      <div class="peak">PEAK: <span id="p${i}">0</span></div>
+      PEAK:<span id="p${i}">0</span>
     `;
 
     root.appendChild(div);
@@ -97,36 +114,36 @@ function createUI(){
 }
 
 async function sendParam(ch,val,type){
-  const obj={
-    cmd:"set",
-    ch:ch,
-    type:type,
-    value:parseFloat(val)
-  };
-
-  writer.write(
-    new TextEncoder().encode(JSON.stringify(obj)+"\n")
-  );
+  writer.write(new TextEncoder().encode(
+    JSON.stringify({
+      cmd:"set",
+      ch:ch,
+      type:type,
+      value:parseFloat(val)
+    })+"\n"
+  ));
 }
 
 async function save(){
-  writer.write(
-    new TextEncoder().encode(
-      JSON.stringify({cmd:"save"})+"\n"
-    )
-  );
+  writer.write(new TextEncoder().encode(
+    JSON.stringify({cmd:"save"})+"\n"
+  ));
 }
 
 async function startRead(){
-
-  createUI();
 
   const decoder=new TextDecoder();
 
   while(true){
 
     const {value,done}=await reader.read();
-    if(done) break;
+    if(done){
+      setStatus("DISCONNECTED","red");
+      break;
+    }
+
+    lastReceive=Date.now();
+    setStatus("RECEIVING DATA","green");
 
     const text=decoder.decode(value);
     const lines=text.split("\n");
@@ -145,7 +162,6 @@ async function startRead(){
 
           document.getElementById("m"+ch).value=val;
 
-          // peak hold
           if(val>peaks[ch]){
             peaks[ch]=val;
             document.getElementById("p"+ch).textContent=val;
@@ -156,6 +172,14 @@ async function startRead(){
     }
   }
 }
+
+/* 通信停止監視 */
+setInterval(()=>{
+  if(Date.now()-lastReceive>1500){
+    setStatus("NO DATA","red");
+  }
+},500);
+
 </script>
 
 </body>
