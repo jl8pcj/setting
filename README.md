@@ -1,2 +1,1 @@
-[[# setting.json](https://jl8pcj.github.io/setting.json/)
-](https://jl8pcj.github.io/setting/)
+https://jl8pcj.github.io/setting/
