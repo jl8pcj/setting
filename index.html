@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>RP2040 太鼓アーケードUI F/J + D/Kリング 分割10px</title>
+<title>RP2040 太鼓アーケードUI 完全版</title>
 <style>
 body{
   background:#0b0b0b;
@@ -20,7 +20,6 @@ button{font-size:16px;padding:10px 16px;margin-right:10px;cursor:pointer;}
 .channelCard{display:flex;flex-direction:column;align-items:center;justify-content:center;margin:10px;padding:10px;background:#151515;border:1px solid #333;width:120px;}
 .sliderRow{display:flex;justify-content:space-between;width:100%;margin-bottom:10px;}
 .sliderRow input{width:48%;}
-
 .meterContainer{
   position:relative;
   width:500px;
@@ -28,7 +27,7 @@ button{font-size:16px;padding:10px 16px;margin-right:10px;cursor:pointer;}
   margin:20px auto;
 }
 
-/* 外側リング D/K */
+/* D/K リング */
 .ring{
   position:absolute;
   width:450px;
@@ -40,42 +39,40 @@ button{font-size:16px;padding:10px 16px;margin-right:10px;cursor:pointer;}
   overflow:hidden;
 }
 
-.ringInner{
+/* 内側円 */
+.ring.d .ringInner,
+.ring.k .ringInner{
   position:absolute;
-  width:320px;
-  height:320px;
+  width:300px;
+  height:300px;
   top:50%;
   left:50%;
   transform:translate(-50%,-50%);
   border-radius:50%;
   background:#0b0b0b;
+  z-index:2;
 }
 
+/* 外周バー */
 .ringContent{
   position:absolute;
   width:100%;
   height:100%;
+  top:0;
+  left:0;
+  z-index:1;
+  background:#333;
 }
 
-/* 左右半分に分割 + 10pxクリアランス */
-.ring.d .ringContent{
-  clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%);
-  left:-5px; /* 10px分クリアランス半分ずつ */
-  background:#333; /* 下がっている部分はグレー */
-}
-.ring.k .ringContent{
-  clip-path: polygon(50% 0, 100% 0, 100% 100%, 50% 100%);
-  left:5px;
-  background:#333; /* 下がっている部分はグレー */
-}
-
+/* バー */
 .ringContent .meterBar{
   position:absolute;
   bottom:0;
   width:100%;
   height:0%;
   transition:height 0.02s linear, background 0.05s linear;
-  background:linear-gradient(to top,#00ff88,#00cc66); /* 緑系 */
+  background:linear-gradient(to top,#00ff88,#00cc66);
+  border-radius:50%;
 }
 
 /* F/J 中央 300px円 */
@@ -94,7 +91,7 @@ button{font-size:16px;padding:10px 16px;margin-right:10px;cursor:pointer;}
   position:relative;
   height:300px;
   overflow:hidden;
-  background:#333; /* 下がっている部分はグレー */
+  background:#333;
 }
 .meterWrap.f{
   width:145px;
@@ -106,16 +103,13 @@ button{font-size:16px;padding:10px 16px;margin-right:10px;cursor:pointer;}
   border-radius:0 150px 150px 0;
   margin-left:5px;
 }
-
-/* F/J バー */
 .meterWrap.f .meterBar,.meterWrap.j .meterBar{
   position:absolute;
   bottom:0;
   width:100%;
   height:0%;
-  background:linear-gradient(to top,#ff4040,#ff0000); /* 赤系 */
+  background:linear-gradient(to top,#ff4040,#ff0000);
 }
-
 .peakBar{
   position:absolute;
   bottom:0;
@@ -126,18 +120,14 @@ button{font-size:16px;padding:10px 16px;margin-right:10px;cursor:pointer;}
 </style>
 </head>
 <body>
-
-<h2>RP2040 太鼓アーケードUI F/J + D/Kリング 分割10px</h2>
+<h2>RP2040 太鼓アーケードUI 完全版</h2>
 <div id="status">
   <span id="led" class="dot red"></span>
   <span id="statText">DISCONNECTED</span>
 </div>
-
 <button id="connectBtn">接続</button>
 <button id="saveBtn">SAVE</button>
-
 <div id="channels" style="display:flex; justify-content:space-around; flex-wrap:wrap;"></div>
-
 <div class="meterContainer" id="meterContainer"></div>
 
 <script>
@@ -146,7 +136,6 @@ let lastReceive=0;
 const names=["D","F","J","K"];
 let peaks=[0,0,0,0];
 let flashTimers=[0,0,0,0];
-
 const led=document.getElementById("led");
 const statText=document.getElementById("statText");
 const channels=document.getElementById("channels");
@@ -171,7 +160,10 @@ connectBtn.onclick=async()=>{
     setStatus("CONNECTED","green");
     startRead();
     send({cmd:"get_settings"});
-  }catch(e){console.error(e); setStatus("FAILED","red");}
+  }catch(e){
+    console.error(e);
+    setStatus("FAILED","red");
+  }
 };
 
 /* ================= UI ================= */
@@ -180,36 +172,60 @@ function createUI(){
   meterContainer.innerHTML="";
 
   // Dリング
-  const dRing=document.createElement("div"); dRing.className="ring d";
-  const dInner=document.createElement("div"); dInner.className="ringInner";
-  const dContent=document.createElement("div"); dContent.className="ringContent";
-  const dBar=document.createElement("div"); dBar.className="meterBar"; dBar.id="bar0";
+  const dRing=document.createElement("div");
+  dRing.className="ring d";
+  const dInner=document.createElement("div");
+  dInner.className="ringInner";
+  const dContent=document.createElement("div");
+  dContent.className="ringContent";
+  const dBar=document.createElement("div");
+  dBar.className="meterBar";
+  dBar.id="bar0";
   dContent.appendChild(dBar);
   dRing.appendChild(dInner);
   dRing.appendChild(dContent);
   meterContainer.appendChild(dRing);
 
   // Kリング
-  const kRing=document.createElement("div"); kRing.className="ring k";
-  const kInner=document.createElement("div"); kInner.className="ringInner";
-  const kContent=document.createElement("div"); kContent.className="ringContent";
-  const kBar=document.createElement("div"); kBar.className="meterBar"; kBar.id="bar3";
+  const kRing=document.createElement("div");
+  kRing.className="ring k";
+  const kInner=document.createElement("div");
+  kInner.className="ringInner";
+  const kContent=document.createElement("div");
+  kContent.className="ringContent";
+  const kBar=document.createElement("div");
+  kBar.className="meterBar";
+  kBar.id="bar3";
   kContent.appendChild(kBar);
   kRing.appendChild(kInner);
   kRing.appendChild(kContent);
   meterContainer.appendChild(kRing);
 
   // F/J 中央
-  const circleContainer=document.createElement("div"); circleContainer.className="circleContainer";
-  const fWrap=document.createElement("div"); fWrap.className="meterWrap f";
-  const fBar=document.createElement("div"); fBar.className="meterBar"; fBar.id="bar1";
-  const fPeak=document.createElement("div"); fPeak.className="peakBar"; fPeak.id="peak1";
-  fWrap.appendChild(fBar); fWrap.appendChild(fPeak);
+  const circleContainer=document.createElement("div");
+  circleContainer.className="circleContainer";
 
-  const jWrap=document.createElement("div"); jWrap.className="meterWrap j";
-  const jBar=document.createElement("div"); jBar.className="meterBar"; jBar.id="bar2";
-  const jPeak=document.createElement("div"); jPeak.className="peakBar"; jPeak.id="peak2";
-  jWrap.appendChild(jBar); jWrap.appendChild(jPeak);
+  const fWrap=document.createElement("div");
+  fWrap.className="meterWrap f";
+  const fBar=document.createElement("div");
+  fBar.className="meterBar";
+  fBar.id="bar1";
+  const fPeak=document.createElement("div");
+  fPeak.className="peakBar";
+  fPeak.id="peak1";
+  fWrap.appendChild(fBar);
+  fWrap.appendChild(fPeak);
+
+  const jWrap=document.createElement("div");
+  jWrap.className="meterWrap j";
+  const jBar=document.createElement("div");
+  jBar.className="meterBar";
+  jBar.id="bar2";
+  const jPeak=document.createElement("div");
+  jPeak.className="peakBar";
+  jPeak.id="peak2";
+  jWrap.appendChild(jBar);
+  jWrap.appendChild(jPeak);
 
   circleContainer.appendChild(fWrap);
   circleContainer.appendChild(jWrap);
@@ -217,19 +233,19 @@ function createUI(){
 
   // スライダー UI
   for(let i=0;i<4;i++){
-    const div=document.createElement("div"); div.className="channelCard";
-    div.innerHTML=<h3>${names[i]}</h3>
+    const div=document.createElement("div");
+    div.className="channelCard";
+    div.innerHTML=`<h3>${names[i]}</h3>
       <div class="sliderRow">
         <input type="range" min="0.5" max="5" step="0.1" value="1" oninput="sendParam(${i},this.value,'gain')">
         <input type="range" min="1000" max="40000" step="500" value="15000" oninput="sendParam(${i},this.value,'threshold')">
-      </div>;
+      </div>`;
     channels.appendChild(div);
   }
 }
 
 /* ================= SEND ================= */
 function send(obj){if(writer) writer.write(new TextEncoder().encode(JSON.stringify(obj)+"\n"));}
-
 function sendParam(ch,val,type){send({cmd:"set", ch:ch, type:type, value:parseFloat(val)});}
 saveBtn.onclick=()=>{setStatus("SAVING","yellow");send({cmd:"save"});};
 
@@ -237,12 +253,15 @@ saveBtn.onclick=()=>{setStatus("SAVING","yellow");send({cmd:"save"});};
 function updateMeter(ch,value){
   const percent=Math.min(100,(value/65535)*100);
   const bar=document.getElementById("bar"+ch);
-  bar.style.height=percent+"%"; // 下から上
+  bar.style.height=percent+"%";
   if(percent>70){bar.style.background="white"; flashTimers[ch]=5;}
-  if(flashTimers[ch]>0){flashTimers[ch]--; if(flashTimers[ch]==0){
-    if(ch==0||ch==3) bar.style.background="linear-gradient(to top,#00ff88,#00cc66)";
-    else bar.style.background="linear-gradient(to top,#ff4040,#ff0000)";
-  }}
+  if(flashTimers[ch]>0){
+    flashTimers[ch]--;
+    if(flashTimers[ch]==0){
+      if(ch==0||ch==3) bar.style.background="linear-gradient(to top,#00ff88,#00cc66)";
+      else bar.style.background="linear-gradient(to top,#ff4040,#ff0000)";
+    }
+  }
   if(value>peaks[ch]) peaks[ch]=value;
   const peak=document.getElementById("peak"+ch);
   const peakPercent=(peaks[ch]/65535)*100;
@@ -261,7 +280,8 @@ async function startRead(){
     if(done){setStatus("DISCONNECTED","red"); break;}
     lastReceive=Date.now();
     buffer+=decoder.decode(value);
-    let lines=buffer.split("\n"); buffer=lines.pop();
+    let lines=buffer.split("\n");
+    buffer=lines.pop();
     for(const line of lines){
       if(!line.startsWith("{")) continue;
       try{
