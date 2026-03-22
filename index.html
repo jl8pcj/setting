@@ -156,7 +156,7 @@ button{font-size:16px;padding:10px 16px;margin-right:10px;cursor:pointer;}
 </style>
 </head>
 <body>
-<h2>Doncon 感度調整5</h2>
+<h2>Doncon 感度調整6</h2>
 <div id="status">
   <span id="led" class="dot red"></span>
   <span id="statText">DISCONNECTED</span>
@@ -282,7 +282,8 @@ function createUI(){
 const msgBox=document.createElement("input");
 msgBox.type="text";
 msgBox.id="messageBox";
-msgBox.placeholder="任意メッセージ入力";
+msgBox.placeholder="gain:___
+  threshold:___";
 meterContainer.appendChild(msgBox);
   
   // スライダー UI
