@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html>
 <head>
 <meta charset="UTF-8">
@@ -6,11 +7,13 @@
 
 <style>
 body{
-  background:#111;
+  background:#0b0b0b;
   color:#fff;
   font-family:sans-serif;
   padding:20px;
 }
+
+h2{margin-bottom:10px;}
 
 #status{
   font-size:18px;
@@ -18,60 +21,90 @@ body{
 }
 
 .dot{
-  width:12px;
-  height:12px;
+  width:14px;
+  height:14px;
   border-radius:50%;
   display:inline-block;
   margin-right:8px;
 }
 
-.red{background:#f33;}
-.yellow{background:#ff0;}
-.green{background:#3f3;}
-
-.card{
-  border:1px solid #444;
-  padding:15px;
-  margin:10px 0;
-}
-
-meter{
-  width:100%;
-  height:20px;
-}
+.red{background:#ff4040;}
+.yellow{background:#ffd000;}
+.green{background:#00ff88;}
 
 button{
   font-size:16px;
-  padding:10px;
+  padding:10px 16px;
   margin-right:10px;
+  cursor:pointer;
+}
+
+.card{
+  border:1px solid #333;
+  padding:18px;
+  margin:14px 0;
+  background:#151515;
+}
+
+.meterWrap{
+  position:relative;
+  width:100%;
+  height:34px;
+  background:#222;
+  border-radius:6px;
+  overflow:hidden;
+}
+
+.meterBar{
+  position:absolute;
+  height:100%;
+  width:0%;
+  background:linear-gradient(90deg,#00ff88,#ffee00,#ff4040);
+}
+
+.peakBar{
+  position:absolute;
+  top:0;
+  width:4px;
+  height:100%;
+  background:#ffffff;
+}
+
+.slider{
+  width:100%;
+}
+
+label{
+  font-size:14px;
 }
 </style>
+
 </head>
 
 <body>
 
-<h2>RP2040 リアルタイム設定</h2>
+<h2>RP2040 ピエゾ設定UI</h2>
 
 <div id="status">
   <span id="led" class="dot red"></span>
   <span id="statText">DISCONNECTED</span>
 </div>
 
-<button onclick="connect()">接続</button>
-<button onclick="save()">SAVE</button>
+<button onclick="connect()">接続</button> <button onclick="save()">SAVE</button>
 
 <div id="channels"></div>
 
 <script>
+
 let port,reader,writer;
 let lastReceive=0;
-let peaks=[0,0,0,0];
 
 const names=["D","F","J","K"];
+let peaks=[0,0,0,0];
 
 function setStatus(text,color){
-  document.getElementById("statText").textContent=text;
-  document.getElementById("led").className="dot "+color;
+  statText.textContent=text;
+  led.className="dot "+color;
 }
 
 /* ================= CONNECT ================= */
@@ -79,7 +112,7 @@ function setStatus(text,color){
 async function connect(){
 
   try{
-    setStatus("CONNECTING...","yellow");
+    setStatus("CONNECTING","yellow");
 
     port = await navigator.serial.requestPort();
     await port.open({baudRate:115200});
@@ -93,9 +126,11 @@ async function connect(){
 
     startRead();
 
+    send({cmd:"get_settings"});
+
   }catch(e){
-    setStatus("FAILED","red");
     console.error(e);
+    setStatus("FAILED","red");
   }
 }
 
@@ -103,8 +138,7 @@ async function connect(){
 
 function createUI(){
 
-  const root=document.getElementById("channels");
-  root.innerHTML="";
+  channels.innerHTML="";
 
   for(let i=0;i<4;i++){
 
@@ -114,116 +148,13 @@ function createUI(){
     div.innerHTML=`
       <h3>${names[i]}</h3>
 
-      gain<br>
-      <input type="range" min="0.5" max="5"
-        step="0.1" value="1"
+      <label>Gain</label>
+      <input class="slider" type="range"
+        min="0.5" max="5" step="0.1" value="1"
         oninput="sendParam(${i},this.value,'gain')">
 
       <br><br>
 
-      threshold<br>
-      <input type="range" min="1000" max="40000"
-        step="500" value="15000"
-        oninput="sendParam(${i},this.value,'threshold')">
-
-      <br><br>
-
-      <meter id="m${i}" min="0" max="65535"></meter>
-      PEAK: <span id="p${i}">0</span>
-    `;
-
-    root.appendChild(div);
-  }
-}
-
-/* ================= SEND ================= */
-
-function send(obj){
-  writer.write(
-    new TextEncoder().encode(JSON.stringify(obj)+"\n")
-  );
-}
-
-function sendParam(ch,val,type){
-  send({
-    cmd:"set",
-    ch:ch,
-    type:type,
-    value:parseFloat(val)
-  });
-}
-
-function save(){
-  setStatus("SAVING...","yellow");
-  send({cmd:"save"});
-}
-
-/* ================= READ LOOP ================= */
-
-async function startRead(){
-
-  const decoder=new TextDecoder();
-
-  while(true){
-
-    const {value,done}=await reader.read();
-
-    if(done){
-      setStatus("DISCONNECTED","red");
-      break;
-    }
-
-    lastReceive=Date.now();
-
-    const text=decoder.decode(value);
-    const lines=text.split("\n");
-
-    for(const line of lines){
-
-      if(!line.startsWith("{")) continue;
-
-      try{
-        const data=JSON.parse(line);
-
-        /* ADC */
-        if(data.type==="adc"){
-
-          setStatus("RECEIVING DATA","green");
-
-          const ch=data.ch;
-          const val=data.value;
-
-          document.getElementById("m"+ch).value=val;
-
-          if(val>peaks[ch]){
-            peaks[ch]=val;
-            document.getElementById("p"+ch).textContent=val;
-          }
-        }
-
-        /* SAVE OK */
-        if(data.type==="saved"){
-          setStatus("SAVED ✓","green");
-        }
-
-        if(data.type==="save_error"){
-          setStatus("SAVE ERROR","red");
-        }
-
-      }catch(e){}
-    }
-  }
-}
-
-/* ================= WATCHDOG ================= */
-
-setInterval(()=>{
-  if(Date.now()-lastReceive>1500){
-    setStatus("NO DATA","red");
-  }
-},500);
-
-</script>
-
-</body>
-</html>
+      <label>Threshold</label>
+      <input class="slider" type="range"
+        min="1000" max="40000" step="500" value="15000"
