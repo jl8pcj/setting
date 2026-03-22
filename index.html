@@ -139,24 +139,10 @@ button{font-size:16px;padding:10px 16px;margin-right:10px;cursor:pointer;}
   height:3px;
   background:#fff;
 }
-/* メッセージ入力枠 */
-#messageBox{
-  position:absolute;
-  left:820px;       
-  top:30%;
-  transform:translateY(-50%);
-  width:150px;
-  height:230px;
-  background:#111;
-  color:#0f0;
-  border:1px solid #333;
-  padding:4px;
-  font-size:14px;
-}
 </style>
 </head>
 <body>
-<h2>Doncon 感度調整3</h2>
+<h2>Doncon 感度調整4</h2>
 <div id="status">
   <span id="led" class="dot red"></span>
   <span id="statText">DISCONNECTED</span>
@@ -279,22 +265,7 @@ function createUI(){
   circleContainer.appendChild(jWrap);
   meterContainer.appendChild(circleContainer);
 
-  // メッセージボックス（1つ）
-  const msgBox=document.createElement("input");
-  msgBox.type="text";
-  msgBox.id="messageBox";
-  msgBox.placeholder=" gain（ゲイン）
-ピエゾセンサーや入力信号の 感度の倍率 です。
-右にスライドすると → 信号が大きく扱われるようになります → バーが より高く反応 します。
-逆に左にスライドすると → 信号が弱く扱われ → バーが低めにしか上がりません。
 
- threshold（しきい値）
-信号を どのレベルからバーに反映するかの基準値 です。
-右にスライドすると → しきい値が高くなる → 強く叩かないとバーが上がらない
-左にスライドすると → しきい値が低くなる → 弱く叩いただけでもバーが上がる
-";
-  meterContainer.appendChild(msgBox);
-  
   // スライダー UI
   for(let i=0;i<4;i++){
     const div=document.createElement("div");
