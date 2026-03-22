@@ -1,8 +1,36 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>RP2040 スライダー</title>
+</head>
+<body>
+
+<h1>RP2040 スライダー制御</h1>
+
 <button id="connectBtn">RP2040 に接続</button>
 
-<script>
-let port;
+<div>
+  <label>Slider 1: <span id="val1">50</span></label>
+  <input type="range" id="slider1" min="0" max="100" value="50">
+</div>
+<div>
+  <label>Slider 2: <span id="val2">50</span></label>
+  <input type="range" id="slider2" min="0" max="100" value="50">
+</div>
+<div>
+  <label>Slider 3: <span id="val3">50</span></label>
+  <input type="range" id="slider3" min="0" max="100" value="50">
+</div>
+<div>
+  <label>Slider 4: <span id="val4">50</span></label>
+  <input type="range" id="slider4" min="0" max="100" value="50">
+</div>
 
+<script>
+let port = null;
+
+// 1. 接続ボタンで RP2040 に接続
 document.getElementById("connectBtn").addEventListener("click", async () => {
     try {
         port = await navigator.serial.requestPort();
@@ -13,12 +41,32 @@ document.getElementById("connectBtn").addEventListener("click", async () => {
     }
 });
 
+// 2. 送信関数
 function sendToRP(key, value) {
     if (port && port.writable) {
         const writer = port.writable.getWriter();
-        const msg = `${key}:${value}\n`;  // ← 改行必須
+        const msg = `${key}:${value}\n`;  // 改行必須
         writer.write(new TextEncoder().encode(msg));
         writer.releaseLock();
     }
 }
+
+// 3. スライダーイベント
+function setupSlider(sliderId, valId, key) {
+    const slider = document.getElementById(sliderId);
+    const valSpan = document.getElementById(valId);
+    slider.addEventListener("input", () => {
+        valSpan.textContent = slider.value;
+        sendToRP(key, slider.value);
+    });
+}
+
+// 4 本のスライダーに対応
+setupSlider("slider1", "val1", "slider_1");
+setupSlider("slider2", "val2", "slider_2");
+setupSlider("slider3", "val3", "slider_3");
+setupSlider("slider4", "val4", "slider_4");
 </script>
+
+</body>
+</html>
