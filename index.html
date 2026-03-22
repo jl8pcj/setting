@@ -1,23 +1,3 @@
-<!DOCTYPE html>
-
-<html>
-<head>
-<meta charset="UTF-8">
-<title>RP2040 Controller</title>
-</head>
-
-<body>
-
-<h3>RP2040　 設定</h3>
-
-<button onclick="connect()">USB接続</button> <button onclick="save()">SAVE</button>
-
-<p id="status">未接続</p>
-
-<hr>
-
-<label>Threshold</label><br> <input type="range" id="threshold" min="0" max="65535" value="30000"> <span id="thresholdValue">30000</span>
-
 <script>
 
 let port;
@@ -28,13 +8,17 @@ const statusText = document.getElementById("status");
 const threshold = document.getElementById("threshold");
 const thresholdValue = document.getElementById("thresholdValue");
 
-// ===== スライダー =====
+// ----------------
+// スライダー操作
+// ----------------
 threshold.oninput = () => {
     thresholdValue.textContent = threshold.value;
     sendLive();
 };
 
-// ===== USB接続 =====
+// ----------------
+// USB接続
+// ----------------
 async function connect() {
 
     port = await navigator.serial.requestPort();
@@ -45,15 +29,23 @@ async function connect() {
 
     statusText.textContent = "接続OK";
 
-    readLoop(); // ★受信開始
+    readLoop();
+
+    // ★ 接続通知
+    await writer.write(
+        new TextEncoder().encode("HELLO\n")
+    );
 }
 
-// ===== RP2040からの受信 =====
+// ----------------
+// RP2040受信
+// ----------------
 async function readLoop() {
 
     const decoder = new TextDecoder();
 
     while (true) {
+
         const { value, done } = await reader.read();
         if (done) break;
 
@@ -61,17 +53,27 @@ async function readLoop() {
 
         console.log("RP2040:", text);
 
-        if (text === "SAVED") {
-            statusText.textContent = "✅ 保存完了";
+        if (text.startsWith("SETTINGS ")) {
+
+            const data =
+                JSON.parse(text.substring(9));
+
+            // スライダー同期
+            threshold.value = data.threshold;
+            thresholdValue.textContent = data.threshold;
+
+            statusText.textContent = "設定同期OK";
         }
 
-        if (text.startsWith("ERROR")) {
-            statusText.textContent = "❌ " + text;
+        if (text === "SAVED") {
+            statusText.textContent = "✅ 保存完了";
         }
     }
 }
 
-// ===== リアルタイム送信 =====
+// ----------------
+// リアルタイム送信
+// ----------------
 async function sendLive() {
 
     if (!writer) return;
@@ -82,13 +84,15 @@ async function sendLive() {
 
     const txt = "SET " + JSON.stringify(obj) + "\n";
 
-    await writer.write(new TextEncoder().encode(txt));
+    await writer.write(
+        new TextEncoder().encode(txt)
+    );
 }
 
-// ===== SAVE =====
+// ----------------
+// SAVE
+// ----------------
 async function save() {
-
-    if (!writer) return;
 
     statusText.textContent = "保存中...";
 
@@ -98,6 +102,3 @@ async function save() {
 }
 
 </script>
-
-</body>
-</html>
