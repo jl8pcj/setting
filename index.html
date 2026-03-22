@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>RP2040 太鼓アーケードUI F/J中央 + 縦半分リングDK クリアランス10px</title>
+<title>RP2040 太鼓アーケードUI F/J中央 + D/K外側リング グレー背景</title>
 <style>
 body{
   background:#0b0b0b;
@@ -28,7 +28,7 @@ button{font-size:16px;padding:10px 16px;margin-right:10px;cursor:pointer;}
   margin:20px auto;
 }
 
-/* 外側リング */
+/* 外側リング D/K */
 .ring{
   position:absolute;
   width:450px;
@@ -38,17 +38,21 @@ button{font-size:16px;padding:10px 16px;margin-right:10px;cursor:pointer;}
   transform:translate(-50%,-50%);
   border-radius:50%;
   overflow:hidden;
+  background:#333; /* ベースグレー */
 }
+
+/* 内側くりぬき部分 */
 .ringInner{
   position:absolute;
-  width:310px;
-  height:310px;
+  width:320px;
+  height:320px;
   top:50%;
   left:50%;
   transform:translate(-50%,-50%);
   border-radius:50%;
   background:#0b0b0b;
 }
+
 .ringContent{
   position:absolute;
   width:100%;
@@ -58,11 +62,11 @@ button{font-size:16px;padding:10px 16px;margin-right:10px;cursor:pointer;}
 /* 左右半分クリップ */
 .ring.d .ringContent{
   clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%);
-  left: -10px; /* F/Jとの間隔10px */
+  left:-10px;
 }
 .ring.k .ringContent{
   clip-path: polygon(50% 0, 100% 0, 100% 100%, 50% 100%);
-  left: 10px; /* F/Jとの間隔10px */
+  left:10px;
 }
 
 /* 中身バー */
@@ -72,6 +76,7 @@ button{font-size:16px;padding:10px 16px;margin-right:10px;cursor:pointer;}
   width:100%;
   height:0%;
   transition:height 0.02s linear, background 0.05s linear;
+  background:linear-gradient(to top,#00ff88,#00cc66); /* D/K緑系 */
 }
 
 /* F/J 中央 300px円 */
@@ -90,7 +95,7 @@ button{font-size:16px;padding:10px 16px;margin-right:10px;cursor:pointer;}
   position:relative;
   height:300px;
   overflow:hidden;
-  background:#222;
+  background:#333; /* ベースグレー */
 }
 .meterWrap.f{
   width:145px;
@@ -103,14 +108,11 @@ button{font-size:16px;padding:10px 16px;margin-right:10px;cursor:pointer;}
   margin-left:5px;
 }
 
-/* 中身バー */
-.meterBar{
-  position:absolute;
-  bottom:0;
-  width:100%;
-  height:0%;
-  transition:height 0.02s linear, background 0.05s linear;
+/* F/J バー */
+.meterWrap.f .meterBar,.meterWrap.j .meterBar{
+  background:linear-gradient(to top,#ff4040,#ff0000); /* 赤系 */
 }
+
 .peakBar{
   position:absolute;
   bottom:0;
@@ -122,7 +124,7 @@ button{font-size:16px;padding:10px 16px;margin-right:10px;cursor:pointer;}
 </head>
 <body>
 
-<h2>RP2040 太鼓アーケードUI F/J中央 + 縦半分リングDK</h2>
+<h2>RP2040 太鼓アーケードUI F/J中央 + D/K外側リング グレー背景</h2>
 <div id="status">
   <span id="led" class="dot red"></span>
   <span id="statText">DISCONNECTED</span>
@@ -174,23 +176,21 @@ function createUI(){
   channels.innerHTML="";
   meterContainer.innerHTML="";
 
-  // D
-  const dRing=document.createElement("div");
-  dRing.className="ring d";
+  // Dリング
+  const dRing=document.createElement("div"); dRing.className="ring d";
   const dInner=document.createElement("div"); dInner.className="ringInner";
   const dContent=document.createElement("div"); dContent.className="ringContent";
-  const dBar=document.createElement("div"); dBar.className="meterBar"; dBar.id="bar0"; dBar.style.background="linear-gradient(to top,#00ff88,#00cc66)";
+  const dBar=document.createElement("div"); dBar.className="meterBar"; dBar.id="bar0";
   dContent.appendChild(dBar);
   dRing.appendChild(dInner);
   dRing.appendChild(dContent);
   meterContainer.appendChild(dRing);
 
-  // K
-  const kRing=document.createElement("div");
-  kRing.className="ring k";
+  // Kリング
+  const kRing=document.createElement("div"); kRing.className="ring k";
   const kInner=document.createElement("div"); kInner.className="ringInner";
   const kContent=document.createElement("div"); kContent.className="ringContent";
-  const kBar=document.createElement("div"); kBar.className="meterBar"; kBar.id="bar3"; kBar.style.background="linear-gradient(to top,#00ff88,#00cc66)";
+  const kBar=document.createElement("div"); kBar.className="meterBar"; kBar.id="bar3";
   kContent.appendChild(kBar);
   kRing.appendChild(kInner);
   kRing.appendChild(kContent);
@@ -199,12 +199,12 @@ function createUI(){
   // F/J 中央
   const circleContainer=document.createElement("div"); circleContainer.className="circleContainer";
   const fWrap=document.createElement("div"); fWrap.className="meterWrap f";
-  const fBar=document.createElement("div"); fBar.className="meterBar"; fBar.id="bar1"; fBar.style.background="linear-gradient(to top,#ff4040,#ff0000)";
+  const fBar=document.createElement("div"); fBar.className="meterBar"; fBar.id="bar1";
   const fPeak=document.createElement("div"); fPeak.className="peakBar"; fPeak.id="peak1";
   fWrap.appendChild(fBar); fWrap.appendChild(fPeak);
 
   const jWrap=document.createElement("div"); jWrap.className="meterWrap j";
-  const jBar=document.createElement("div"); jBar.className="meterBar"; jBar.id="bar2"; jBar.style.background="linear-gradient(to top,#ff4040,#ff0000)";
+  const jBar=document.createElement("div"); jBar.className="meterBar"; jBar.id="bar2";
   const jPeak=document.createElement("div"); jPeak.className="peakBar"; jPeak.id="peak2";
   jWrap.appendChild(jBar); jWrap.appendChild(jPeak);
 
@@ -278,7 +278,6 @@ async function startRead(){
 
 /* ================= WATCHDOG ================= */
 setInterval(()=>{if(Date.now()-lastReceive>1500) setStatus("NO DATA","red");},500);
-
 </script>
 </body>
 </html>
