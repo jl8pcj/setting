@@ -2,257 +2,110 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>RP2040 RealTime Setting</title>
-
+<title>Piezo Setting</title>
 <style>
-body{
-    font-family:sans-serif;
-    margin:30px;
-}
-
-.slider{
-    width:320px;
-}
-
-h2{
-    margin-bottom:20px;
-}
-
-.row{
-    margin-bottom:18px;
-}
-
-button{
-    font-size:18px;
-    padding:8px 18px;
-}
-
-#status{
-    margin-top:20px;
-    font-weight:bold;
-}
+body{font-family:sans-serif;background:#111;color:#fff}
+.slider{width:300px}
+.box{margin:15px;padding:10px;border:1px solid #555}
 </style>
 </head>
 
 <body>
 
-<h2>RP2040 リアルタイム調整</h2>
+<h2>RP2040 Piezo 調整</h2>
 
-<div class="row">
-Threshold<br>
-<input id="threshold" class="slider" type="range"
-min="0" max="65535" value="30000">
-<span id="threshold_val">30000</span>
-</div>
+<button onclick="connect()">接続</button>
 
-<div class="row">
-Gain<br>
-<input id="gain" class="slider" type="range"
-min="0" max="5" step="0.1" value="1">
-<span id="gain_val">1</span>
-</div>
-
-<div class="row">
-Volume<br>
-<input id="volume" class="slider" type="range"
-min="0" max="100" value="50">
-<span id="volume_val">50</span>
-</div>
-
-<button onclick="saveSetting()">SAVE（永久保存）</button>
-
-<div id="status">待機中...</div>
+<div id="ui"></div>
 
 <script>
 
 let port;
-let reader;
 let writer;
-let updateTimer;
+let reader;
 
-// =======================
-// 自動接続
-// =======================
-async function autoConnect(){
+let settings={
+  threshold:[20000,20000,20000,20000],
+  gain:[1,1,1,1]
+};
 
-    const ports = await navigator.serial.getPorts();
+async function connect(){
 
-    if(ports.length===0){
-        status.innerText="初回のみ接続許可してください";
-        return;
-    }
+  port=await navigator.serial.requestPort();
+  await port.open({baudRate:115200});
 
-    port=ports[0];
-    await openPort();
+  writer=port.writable.getWriter();
+  reader=port.readable.getReader();
+
+  await send("GET\n");
+  readLoop();
 }
 
-async function requestConnect(){
-    port=await navigator.serial.requestPort();
-    await openPort();
+async function send(msg){
+  await writer.write(new TextEncoder().encode(msg));
 }
 
-async function openPort(){
-
-    await port.open({baudRate:115200});
-
-    writer=port.writable.getWriter();
-    reader=port.readable.getReader();
-
-    status.innerText="接続完了";
-
-    readLoop();
-    sendHello();
-}
-
-// =======================
-// HELLO同期
-// =======================
-async function sendHello(){
-    await writer.write(
-        new TextEncoder().encode(
-            JSON.stringify({cmd:"hello"})+"\n"
-        )
-    );
-}
-
-// =======================
-// 受信ループ
-// =======================
 async function readLoop(){
+  while(true){
+    const {value}=await reader.read();
+    if(!value) continue;
 
-    let buffer="";
-
-    while(true){
-
-        const {value,done}=await reader.read();
-        if(done){
-            reconnect();
-            return;
-        }
-
-        const text=new TextDecoder().decode(value);
-
-        for(const c of text){
-
-            if(c=="\n"){
-                handleMessage(buffer);
-                buffer="";
-            }else{
-                buffer+=c;
-            }
-        }
-    }
-}
-
-// =======================
-// メッセージ処理
-// =======================
-function handleMessage(msg){
-
-    console.log("RX:",msg);
+    let txt=new TextDecoder().decode(value).trim();
 
     try{
-        const data=JSON.parse(msg);
-
-        // 設定同期
-        if(data.threshold!==undefined){
-
-            threshold.value=data.threshold;
-            threshold_val.innerText=data.threshold;
-
-            gain.value=data.gain;
-            gain_val.innerText=data.gain;
-
-            volume.value=data.volume;
-            volume_val.innerText=data.volume;
-
-            status.innerText="設定同期OK";
-        }
-
-        // 保存完了
-        if(data.status==="ok"){
-            status.innerText="✅ 保存完了";
-        }
-
-    }catch(e){
-        console.log("JSON ERROR",e);
-    }
+      let data=JSON.parse(txt);
+      settings=data;
+      buildUI();
+    }catch{}
+  }
 }
 
-// =======================
-// ⭐リアルタイム送信
-// =======================
-function realtimeSend(){
+function buildUI(){
 
-    threshold_val.innerText=threshold.value;
-    gain_val.innerText=gain.value;
-    volume_val.innerText=volume.value;
+  let html="";
 
-    clearTimeout(updateTimer);
+  for(let i=0;i<4;i++){
 
-    updateTimer=setTimeout(async ()=>{
+    html+=`
+    <div class="box">
+    Piezo ${i}
 
-        if(!writer) return;
+    <br>Threshold
+    <input class="slider" type="range"
+      min="1000" max="60000"
+      value="${settings.threshold[i]}"
+      oninput="chgT(${i},this.value)">
+    <span id="t${i}">${settings.threshold[i]}</span>
 
-        const packet={
-            cmd:"update",
-            data:{
-                threshold:Number(threshold.value),
-                gain:Number(gain.value),
-                volume:Number(volume.value)
-            }
-        };
+    <br>Gain
+    <input class="slider" type="range"
+      min="0.5" max="3" step="0.1"
+      value="${settings.gain[i]}"
+      oninput="chgG(${i},this.value)">
+    <span id="g${i}">${settings.gain[i]}</span>
+    </div>
+    `;
+  }
 
-        await writer.write(
-            new TextEncoder().encode(
-                JSON.stringify(packet)+"\n"
-            )
-        );
-
-    },30); // 30ms debounce
+  document.getElementById("ui").innerHTML=html;
 }
 
-// =======================
-// 保存
-// =======================
-async function saveSetting(){
-
-    status.innerText="保存中...";
-
-    const packet={
-        cmd:"save",
-        data:{}
-    };
-
-    await writer.write(
-        new TextEncoder().encode(
-            JSON.stringify(packet)+"\n"
-        )
-    );
+function chgT(i,v){
+  settings.threshold[i]=Number(v);
+  document.getElementById("t"+i).textContent=v;
+  save();
 }
 
-// =======================
-// 再接続
-// =======================
-function reconnect(){
-    status.innerText="再接続中...";
-    setTimeout(autoConnect,1000);
+function chgG(i,v){
+  settings.gain[i]=Number(v);
+  document.getElementById("g"+i).textContent=v;
+  save();
 }
 
-navigator.serial.addEventListener("connect",autoConnect);
-navigator.serial.addEventListener("disconnect",reconnect);
-
-// =======================
-// スライダーイベント登録
-// =======================
-threshold.oninput=realtimeSend;
-gain.oninput=realtimeSend;
-volume.oninput=realtimeSend;
-
-// 起動時自動接続
-autoConnect();
+async function save(){
+  await send("SET"+JSON.stringify(settings)+"\n");
+}
 
 </script>
-
 </body>
 </html>
