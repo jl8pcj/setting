@@ -38,47 +38,62 @@ button{
   cursor:pointer;
 }
 
-.card{
-  border:1px solid #333;
-  padding:18px;
-  margin:14px 0;
+.channelCard{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  margin:10px;
+  padding:10px;
   background:#151515;
+  border:1px solid #333;
+  width:120px;
 }
 
+/* スライダー左右並び */
+.sliderRow{
+  display:flex;
+  justify-content:space-between;
+  width:100%;
+  margin-bottom:10px;
+}
+.sliderRow input{
+  width:48%;
+}
+
+/* 縦メーター */
+.meterContainer{
+  display:flex;
+  justify-content:space-around;
+  align-items:flex-end;
+  height:300px;
+  margin-top:20px;
+}
 .meterWrap{
   position:relative;
-  width:100%;
-  height:34px;
+  width:30px;
+  height:100%;
   background:#222;
   border-radius:6px;
   overflow:hidden;
+  margin:0 10px;
 }
-
 .meterBar{
   position:absolute;
-  height:100%;
-  width:0%;
-  background:linear-gradient(90deg,#00ff88,#ffee00,#ff4040);
+  bottom:0;
+  width:100%;
+  height:0%;
 }
-
 .peakBar{
   position:absolute;
-  top:0;
-  width:4px;
-  height:100%;
-  background:#ffffff;
-}
-
-.slider{
+  bottom:0;
   width:100%;
+  height:3px;
+  background:#fff;
 }
 
-label{
-  font-size:14px;
-}
 </style>
 </head>
-
 <body>
 
 <h2>RP2040 ピエゾ設定UI</h2>
@@ -91,11 +106,13 @@ label{
 <button id="connectBtn">接続</button>
 <button id="saveBtn">SAVE</button>
 
-<div id="channels"></div>
+<div id="channels" style="display:flex; justify-content:space-around; flex-wrap:wrap;"></div>
+
+<div class="meterContainer" id="meterContainer"></div>
 
 <script>
 let port, reader, writer;
-let lastReceive = 0;
+let lastReceive=0;
 const names=["D","F","J","K"];
 let peaks=[0,0,0,0];
 
@@ -104,6 +121,7 @@ const statText=document.getElementById("statText");
 const channels=document.getElementById("channels");
 const connectBtn=document.getElementById("connectBtn");
 const saveBtn=document.getElementById("saveBtn");
+const meterContainer=document.getElementById("meterContainer");
 
 function setStatus(text,color){
   statText.textContent=text;
@@ -131,25 +149,35 @@ connectBtn.onclick = async () => {
 /* ================= UI ================= */
 function createUI(){
   channels.innerHTML="";
+  meterContainer.innerHTML="";
   for(let i=0;i<4;i++){
+    // スライダー
     const div=document.createElement("div");
-    div.className="card";
+    div.className="channelCard";
     div.innerHTML=`
       <h3>${names[i]}</h3>
-      <label>Gain</label>
-      <input class="slider" type="range" min="0.5" max="5" step="0.1" value="1"
-        oninput="sendParam(${i},this.value,'gain')">
-      <br><br>
-      <label>Threshold</label>
-      <input class="slider" type="range" min="1000" max="40000" step="500" value="15000"
-        oninput="sendParam(${i},this.value,'threshold')">
-      <br><br>
-      <div class="meterWrap">
-        <div class="meterBar" id="bar${i}"></div>
-        <div class="peakBar" id="peak${i}"></div>
+      <div class="sliderRow">
+        <input type="range" min="0.5" max="5" step="0.1" value="1" oninput="sendParam(${i},this.value,'gain')">
+        <input type="range" min="1000" max="40000" step="500" value="15000" oninput="sendParam(${i},this.value,'threshold')">
       </div>
     `;
     channels.appendChild(div);
+
+    // メーター
+    const meterDiv=document.createElement("div");
+    meterDiv.className="meterWrap";
+    const barDiv=document.createElement("div");
+    barDiv.className="meterBar";
+    barDiv.id="bar"+i;
+    // 色分け
+    if(i==0||i==3) barDiv.style.background="linear-gradient(to top,#00ff88,#00cc66)";
+    else barDiv.style.background="linear-gradient(to top,#ff4040,#ff0000)";
+    const peakDiv=document.createElement("div");
+    peakDiv.className="peakBar";
+    peakDiv.id="peak"+i;
+    meterDiv.appendChild(barDiv);
+    meterDiv.appendChild(peakDiv);
+    meterContainer.appendChild(meterDiv);
   }
 }
 
@@ -174,10 +202,10 @@ function updateMeter(ch,value){
   const percent=Math.min(100,(value/65535)*100);
   const bar=document.getElementById("bar"+ch);
   const peak=document.getElementById("peak"+ch);
-  bar.style.width=percent+"%";
+  bar.style.height=percent+"%";
   if(value>peaks[ch]) peaks[ch]=value;
   const peakPercent=(peaks[ch]/65535)*100;
-  peak.style.left=peakPercent+"%";
+  peak.style.bottom=peakPercent+"%";
 }
 
 /* peak decay */
@@ -207,7 +235,7 @@ async function startRead(){
         if(data.type==="saved") setStatus("SAVED ✓","green");
         if(data.type==="save_error") setStatus("SAVE ERROR","red");
         if(data.type==="settings"){
-          const sliders=document.querySelectorAll("input[type=range]");
+          const sliders=document.querySelectorAll(".sliderRow input");
           for(let i=0;i<4;i++){
             sliders[i*2].value=data.gain[i];
             sliders[i*2+1].value=data.threshold[i];
