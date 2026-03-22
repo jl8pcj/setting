@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>RP2040 太鼓アーケードUI F/J + D/Kリング K内径調整10px</title>
+<title>RP2040 太鼓アーケードUI F/J + D/Kリング Kインナー円</title>
 <style>
 body{
   background:#0b0b0b;
@@ -40,9 +40,10 @@ button{font-size:16px;padding:10px 16px;margin-right:10px;cursor:pointer;}
   overflow:hidden;
 }
 
-.ringInner{
+/* Dリング内円 */
+.ring.d .ringInner{
   position:absolute;
-  width:320px; /* Dリングはそのまま */
+  width:320px;
   height:320px;
   top:50%;
   left:50%;
@@ -51,13 +52,19 @@ button{font-size:16px;padding:10px 16px;margin-right:10px;cursor:pointer;}
   background:#0b0b0b;
 }
 
-/* Kリングだけ内径拡大して中央と10pxクリアランス */
+/* Kリング内円を拡大して中央F/Jから10pxクリアランス */
 .ring.k .ringInner{
+  position:absolute;
   width:330px;
   height:330px;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  border-radius:50%;
   background:#0b0b0b;
 }
 
+/* リングバー用コンテンツ */
 .ringContent{
   position:absolute;
   width:100%;
@@ -67,13 +74,13 @@ button{font-size:16px;padding:10px 16px;margin-right:10px;cursor:pointer;}
 /* 左右半分に分割 + 10pxクリアランス */
 .ring.d .ringContent{
   clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%);
-  left:-5px; /* 10px分クリアランス半分ずつ */
-  background:#333; /* 下がっている部分はグレー */
+  left:-5px;
+  background:#333;
 }
 .ring.k .ringContent{
   clip-path: polygon(50% 0, 100% 0, 100% 100%, 50% 100%);
-  left:0; /* 内径拡大で自動的に中央と10px隙間 */
-  background:#333; /* 下がっている部分はグレー */
+  left:0;
+  background:#333;
 }
 
 .ringContent .meterBar{
@@ -101,7 +108,7 @@ button{font-size:16px;padding:10px 16px;margin-right:10px;cursor:pointer;}
   position:relative;
   height:300px;
   overflow:hidden;
-  background:#333; /* 下がっている部分はグレー */
+  background:#333;
 }
 .meterWrap.f{
   width:145px;
@@ -134,7 +141,7 @@ button{font-size:16px;padding:10px 16px;margin-right:10px;cursor:pointer;}
 </head>
 <body>
 
-<h2>RP2040 太鼓アーケードUI F/J + D/Kリング K内径調整10px</h2>
+<h2>RP2040 太鼓アーケードUI F/J + D/Kリング Kインナー円</h2>
 <div id="status">
   <span id="led" class="dot red"></span>
   <span id="statText">DISCONNECTED</span>
@@ -236,7 +243,6 @@ function createUI(){
 
 /* ================= SEND ================= */
 function send(obj){if(writer) writer.write(new TextEncoder().encode(JSON.stringify(obj)+"\n"));}
-
 function sendParam(ch,val,type){send({cmd:"set", ch:ch, type:type, value:parseFloat(val)});}
 saveBtn.onclick=()=>{setStatus("SAVING","yellow");send({cmd:"save"});} ;
 
