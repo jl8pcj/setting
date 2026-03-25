@@ -1,1 +1,7 @@
-https://jl8pcj.github.io/setting/
+
+
+GP10ピンを"ショート"で開発モード　"OPEN"で実行モード
+感度調節サイトhttps://jl8pcj.github.io/v1.2/index.html
+
+"接続"でポートを選択　記録されているパラメータで自動的にスライダーが調整されます。
+任意の値に調整したら"SAVE"を押してください。
