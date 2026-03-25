@@ -1,5 +1,5 @@
 GP10ピンを"ショート"で開発モード　"OPEN"で実行モード<br>
-開発モードでは下記のSAVEができません。
+開発モードでは下記のSAVEができません。<br>
 <br>
 感度調節サイトhttps://jl8pcj.github.io/v1.2/index.html<br>
 <br>
